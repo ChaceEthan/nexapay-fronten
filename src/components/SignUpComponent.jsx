@@ -108,8 +108,6 @@ const SignUpComponent = () => {
     } finally {
       setLoading(false);
     }
-      setLoading(false);
-    }
   };
 
   return (
