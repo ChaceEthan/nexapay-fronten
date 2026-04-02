@@ -8,47 +8,52 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
   });
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [userPublicKey, setUserPublicKey] = useState(() => {
     return localStorage.getItem('userPublicKey') || null;
-  });
-  const [userEmail, setUserEmail] = useState(() => {
-    return localStorage.getItem('userEmail') || null;
   });
   const [balance, setBalance] = useState(() => {
     return parseFloat(localStorage.getItem('balance')) || 0;
   });
 
-  const login = (email, password, userData = null) => {
-    if (email && password) {
-      setIsLoggedIn(true);
-      setUserEmail(email);
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', email);
+  const login = (userData) => {
+    if (!userData || !userData.email) return false;
 
-      // Store additional user data if provided
-      if (userData) {
-        if (userData.token) {
-          localStorage.setItem('authToken', userData.token);
-        }
-        if (userData.userId) {
-          localStorage.setItem('userId', userData.userId);
-        }
-      }
+    const nextUser = {
+      ...userData,
+      email: userData.email,
+    };
 
-      return true;
+    setIsLoggedIn(true);
+    setUser(nextUser);
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('user', JSON.stringify(nextUser));
+
+    if (userData.token) {
+      localStorage.setItem('authToken', userData.token);
     }
-    return false;
+
+    if (userData.balance !== undefined) {
+      setBalance(Number(userData.balance));
+      localStorage.setItem('balance', Number(userData.balance));
+    }
+
+    return true;
   };
 
   const logout = () => {
     setIsLoggedIn(false);
+    setUser(null);
     setUserPublicKey(null);
-    setUserEmail(null);
     setBalance(0);
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('user');
     localStorage.removeItem('userPublicKey');
-    localStorage.removeItem('userEmail');
     localStorage.removeItem('balance');
+    localStorage.removeItem('authToken');
   };
 
   const setWalletPublicKey = (publicKey) => {
@@ -62,8 +67,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     isLoggedIn,
+    user,
     userPublicKey,
-    userEmail,
     balance,
     login,
     logout,

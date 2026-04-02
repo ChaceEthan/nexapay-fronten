@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const SignUpComponent = () => {
+const SignUpComponent = ({ onSignupFinished }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -66,11 +66,10 @@ const SignUpComponent = () => {
       return;
     }
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const url = `${apiUrl}/signup`;
-
+    const API = import.meta.env.VITE_API_URL || 'https://nexapay-wallet.onrender.com';
+    
     try {
-      const response = await fetch(url, {
+      const response = await fetch(`${API}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,10 +84,10 @@ const SignUpComponent = () => {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        setSuccessMessage('Sign up successful!');
+        setSuccessMessage('Sign up successful! Please sign in.');
         setWalletAddress(data.walletAddress || 'N/A');
         setFormData({
           firstName: '',
@@ -99,12 +98,16 @@ const SignUpComponent = () => {
           countryCode: '+250',
           phoneNumber: '',
         });
+
+        if (typeof onSignupFinished === 'function') {
+          onSignupFinished();
+        }
       } else {
         setError(data.message || 'Sign up failed');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      setError('Network error or server is unreachable');
+      setError(err.message === 'Failed to fetch' ? 'Network error: Unable to reach API' : 'Network error or server is unreachable');
     } finally {
       setLoading(false);
     }

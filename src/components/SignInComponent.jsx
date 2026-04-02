@@ -37,9 +37,8 @@ const SignInComponent = ({ onLogin }) => {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const url = `${apiUrl}/signin`;
-      const response = await fetch(url, {
+      const API = import.meta.env.VITE_API_URL || 'https://nexapay-wallet.onrender.com';
+      const response = await fetch(`${API}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,28 +46,28 @@ const SignInComponent = ({ onLogin }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-
-      // Handle remember me
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // Call the parent onLogin function with the response data
-      onLogin(data.email || email, password, data);
+      localStorage.setItem('user', JSON.stringify(data));
+      onLogin(data);
 
-      // Clear form
       setPassword('');
     } catch (err) {
       console.error('Sign in error:', err);
-      setError(err.message || 'Sign in failed. Please try again.');
+      if (err.message === 'Failed to fetch') {
+        setError('Network error: Unable to reach API');
+      } else {
+        setError(err.message || 'Sign in failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

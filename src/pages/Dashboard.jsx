@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import WalletConnect from '../components/WalletConnect';
 import Health from '../components/Health';
@@ -8,92 +10,78 @@ import GetValue from '../components/GetValue';
 import { Wallet, Send, Download, Settings, History } from 'lucide-react';
 
 const Dashboard = () => {
-  const { userEmail, logout, balance } = useAuth();
+  const { user, userPublicKey, logout, balance } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/signin');
+    }
+  }, [user, navigate]);
+
+  const publicKey = userPublicKey || (user ? user.publicKey : null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 p-6">
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-4">
-            <img src="/logo.svg" alt="NexaPay Logo" className="w-10 h-10" />
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">NexaPay Dashboard</h1>
-              {userEmail && <p className="text-slate-400">Welcome back, {userEmail}</p>}
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <WalletConnect />
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 to-slate-900 text-white flex">
+      <aside className="w-72 p-6 bg-slate-900/70 backdrop-blur-lg border-r border-slate-800">
+        <img src="/logo.svg" alt="NexaPay Logo" className="w-12 h-12 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">NexaPay</h2>
+        <p className="text-slate-400 mb-4">Stellar Testnet Wallet</p>
+
+        <div className="space-y-3">
+          <p className="text-slate-300 text-sm">User: {user?.email || 'Guest'}</p>
+          <p className="text-slate-300 text-sm break-words">Wallet: {publicKey || 'Not connected'}</p>
+          <p className="text-slate-300 text-sm">Balance: {balance.toFixed(2)} XLM</p>
+        </div>
+
+        <div className="mt-6 space-y-2">
+          <button className="w-full py-2 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 transition">Send</button>
+          <button className="w-full py-2 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition">Receive</button>
+          {publicKey && (
             <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition"
+              onClick={() => window.open(`https://friendbot.stellar.org/?addr=${publicKey}`, '_blank')}
+              className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 transition"
             >
-              Logout
+              Fund Wallet (Testnet)
             </button>
+          )}
+          <button onClick={logout} className="w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 transition">
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
+            <h3 className="text-lg font-semibold mb-2">Wallet Connect</h3>
+            <WalletConnect />
+          </div>
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
+            <h3 className="text-lg font-semibold mb-2">API Health</h3>
+            <Health />
+          </div>
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
+            <h3 className="text-lg font-semibold mb-2">Recent Activity</h3>
+            <p className="text-slate-300 text-sm">No recent transactions yet. Initiate a send or deposit to get started.</p>
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="bg-slate-900 rounded-2xl shadow-lg p-6 border border-slate-800">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
-              <Wallet className="w-6 h-6 mr-2" />
-              Wallet Balance
-            </h2>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">XLM</span>
-                </div>
-                <div>
-                  <p className="text-slate-300 text-sm">Stellar Lumens</p>
-                  <p className="text-white text-lg font-semibold">{balance.toFixed(2)} XLM</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 text-sm">≈ ${(balance * 0.1).toFixed(2)} USD</p>
-                {userPublicKey && (
-                  <button
-                    onClick={() => window.open(`https://friendbot.stellar.org/?addr=${userPublicKey}`, '_blank')}
-                    className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition"
-                  >
-                    Fund Wallet (Testnet)
-                  </button>
-                )}
-              </div>
-            </div>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <DepositComponent />
+          </div>
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <TransactionComponent />
+          </div>
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <SetValue />
+          </div>
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <GetValue />
           </div>
         </div>
-
-        <div className="mb-6">
-          <Health />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-slate-900 rounded-2xl shadow-lg p-6 border border-slate-800 hover:border-purple-700 transition">
-            <div className="flex items-center mb-4">
-              <Download className="w-5 h-5 text-purple-400 mr-2" />
-              <DepositComponent />
-            </div>
-          </div>
-          <div className="bg-slate-900 rounded-2xl shadow-lg p-6 border border-slate-800 hover:border-purple-700 transition">
-            <div className="flex items-center mb-4">
-              <Send className="w-5 h-5 text-purple-400 mr-2" />
-              <TransactionComponent />
-            </div>
-          </div>
-          <div className="bg-slate-900 rounded-2xl shadow-lg p-6 border border-slate-800 hover:border-purple-700 transition">
-            <div className="flex items-center mb-4">
-              <Settings className="w-5 h-5 text-purple-400 mr-2" />
-              <SetValue />
-            </div>
-          </div>
-          <div className="bg-slate-900 rounded-2xl shadow-lg p-6 border border-slate-800 hover:border-purple-700 transition">
-            <div className="flex items-center mb-4">
-              <History className="w-5 h-5 text-purple-400 mr-2" />
-              <GetValue />
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };
