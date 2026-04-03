@@ -1,25 +1,22 @@
 import axios from "axios";
 
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://nexapay-wallet.onrender.com",
-});
-
 export const getAccountDetails = async (address) => {
-  const res = await API.get(`/account/${address}`);
+  const res = await axios.get(`https://horizon-testnet.stellar.org/accounts/${address}`);
   return res.data;
 };
 
 export const getTransactionHistory = async (address) => {
-  const res = await API.get(`/account/${address}/history`);
-  return res.data;
+  const res = await axios.get(`https://horizon-testnet.stellar.org/accounts/${address}/transactions?limit=10&order=desc`);
+  return res.data._embedded.records;
 };
 
 export const fundAccount = async (address) => {
-  const res = await API.post(`/account/fund`, { address });
-  return res.data;
+  return axios.get(`https://friendbot.stellar.org?addr=${address}`);
 };
 
 export const submitTransaction = async (xdr) => {
-  const res = await API.post("/transactions/submit", { xdr });
+  const params = new URLSearchParams();
+  params.append("tx", xdr);
+  const res = await axios.post(`https://horizon-testnet.stellar.org/transactions`, params);
   return res.data;
 };

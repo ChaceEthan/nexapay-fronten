@@ -1,17 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {
-      colors: {
-        nexabg: "#0b0f1e",
-        nexabase: "#141d35",
-        nexacard: "rgba(18, 31, 58, 0.58)",
+      backdropBlur: {
+        xs: '2px',
       },
-      boxShadow: {
-        glow: "0 0 35px rgba(120, 90, 255, 0.35)",
+      keyframes: {
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 3s infinite linear',
       },
     },
   },
   plugins: [],
-};
+}
