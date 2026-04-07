@@ -8,11 +8,12 @@ import { Wallet, RefreshCw } from "lucide-react";
 
 export default function Dashboard() {
   const [publicKey, setPublicKey] = useState(null);
+  const [displayedAddress, setDisplayedAddress] = useState(""); // Show connected address
   const [manualKey, setManualKey] = useState(""); // Mobile input
   const [balance, setBalance] = useState("0");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch balance function
+  // Fetch balance
   const fetchBalance = useCallback(async (key) => {
     if (!key) return;
     try {
@@ -25,29 +26,39 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Auto-fetch balance on key or refresh
+  // Auto-fetch balance + save wallet
   useEffect(() => {
     if (publicKey) {
       fetchBalance(publicKey);
-      localStorage.setItem("nexapayWallet", publicKey); // Save wallet
+      localStorage.setItem("nexapayWallet", publicKey);
+      setDisplayedAddress(publicKey);
     }
   }, [publicKey, refreshTrigger, fetchBalance]);
 
-  // Load saved wallet on mount
+  // Load saved wallet
   useEffect(() => {
     const savedKey = localStorage.getItem("nexapayWallet");
     if (savedKey) setPublicKey(savedKey);
   }, []);
 
-  // Desktop Freighter connect
+  // Freighter desktop connect
   const handleConnect = (key) => setPublicKey(key);
 
   // Mobile manual connect
   const handleManualConnect = () => {
-    if (manualKey) setPublicKey(manualKey);
+    if (manualKey) {
+      setPublicKey(manualKey);
+      setDisplayedAddress(manualKey);
+    }
   };
 
   const handleTransactionSuccess = () => setRefreshTrigger(prev => prev + 1);
+
+  // Helper to truncate long addresses
+  const truncateAddress = (addr) => {
+  if (!addr) return "";
+  return addr.length > 12 ? `${addr.slice(0,6)}...${addr.slice(-6)}` : addr;
+};
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-cyan-500/30">
@@ -87,6 +98,13 @@ export default function Dashboard() {
                   Connect Mobile Wallet
                 </button>
               </div>
+
+              {/* Connected address display */}
+              {displayedAddress && (
+                <p className="text-sm text-cyan-400 mb-2 break-all">
+                  Connected: {truncateAddress(displayedAddress)}
+                </p>
+              )}
 
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center justify-between">
                 <span>Available Balance</span>
