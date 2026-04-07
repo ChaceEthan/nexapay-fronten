@@ -1,22 +1,22 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { sendTransaction } from "../services/stellar";
-import { QRCodeSVG } from "qrcode.react"; // ✅ named export
+import { QRCodeSVG } from "qrcode.react";
 
-export default function TransactionForm({ publicKey, onSuccess }) {
+export default function TransactionForm({ publicKey, onSuccess, network = "testnet" }) {
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
 
+  // Detect mobile
   const isMobile = typeof navigator !== "undefined" &&
     /Android|iPhone|iPad/i.test(navigator.userAgent);
 
-  const paymentLink =
-    destination && amount
-      ? `web+stellar:pay?destination=${destination}&amount=${amount}&asset_code=XLM`
-      : "";
+  const stellarPayUrl = `web+stellar:pay?destination=${destination}&amount=${amount}&asset_code=XLM&network=${network}`;
+  const paymentLink = destination && amount ? stellarPayUrl : "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +29,13 @@ export default function TransactionForm({ publicKey, onSuccess }) {
     setError("");
     setSuccess("");
 
+    // Mobile + Testnet alert
+    if (isMobile && network === "testnet") {
+      setShowAlert(true);
+      return;
+    }
+
+    // Mobile mainnet payment
     if (isMobile) {
       window.location.href = paymentLink;
       return;
@@ -56,6 +63,12 @@ export default function TransactionForm({ publicKey, onSuccess }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {showAlert && (
+        <div className="p-3 text-yellow-900 bg-yellow-300/30 rounded-lg">
+          ⚠️ Mobile wallets do not support testnet. Payments will only work on mainnet.
+        </div>
+      )}
+
       {error && <div className="p-3 text-red-400 bg-red-500/10 rounded-lg">{error}</div>}
       {success && <div className="p-3 text-green-400 bg-green-500/10 rounded-lg">{success}</div>}
 

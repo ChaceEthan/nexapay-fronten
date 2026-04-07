@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback } from "react";
-import WalletConnect from "./WalletConnect";
-import TransactionForm from "./TransactionForm";
-import TransactionHistory from "./TransactionHistory";
+import WalletConnect from "../components/WalletConnect";
+import TransactionForm from "../components/TransactionForm";
+import TransactionHistory from "../components/TransactionHistory";
 import { getAccountDetails } from "../services/stellar";
 import { Wallet, RefreshCw } from "lucide-react";
 
@@ -56,9 +56,9 @@ export default function Dashboard() {
 
   // Helper to truncate long addresses
   const truncateAddress = (addr) => {
-  if (!addr) return "";
-  return addr.length > 12 ? `${addr.slice(0,6)}...${addr.slice(-6)}` : addr;
-};
+    if (!addr) return "";
+    return addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-6)}` : addr;
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-cyan-500/30">

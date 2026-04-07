@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // Assuming Dashboard exists in pages/ or src/. 
 // If Dashboard is missing, the build will fail here.
 // Based on your structure, Auth is in src/
-import Dashboard from "./components/Dashboard"; 
+import Dashboard from "./pages/Dashboard"; 
 import Auth from "./Auth";
 
 class ErrorBoundary extends React.Component {
