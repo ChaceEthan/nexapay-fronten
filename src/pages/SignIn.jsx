@@ -1,10 +1,12 @@
 // @ts-nocheck
- import React, { useState } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-   const [error, setError] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,7 +22,7 @@ export default function SignIn() {
     localStorage.setItem("nexapayUser", email);
 
     // Redirect to dashboard
-    window.location.href = "/dashboard";
+    navigate("/dashboard");
   };
 
   return (
@@ -58,9 +60,9 @@ export default function SignIn() {
 
         {/* Switch to signup */}
         <p className="text-sm text-center text-slate-400 mt-4">
-          Don't have an account?
+          Don&apos;t have an account?
           <span
-            onClick={() => (window.location.href = "/signup")}
+            onClick={() => navigate("/signup")}
             className="text-cyan-400 cursor-pointer ml-1"
           >
             Sign Up

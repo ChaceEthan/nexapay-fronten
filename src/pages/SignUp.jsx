@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
- 
+import { useNavigate } from "react-router-dom";
+
 const africanCountries = [
   { name: "Rwanda", code: "+250", flag: "🇷🇼" },
   { name: "Kenya", code: "+254", flag: "🇰🇪" },
@@ -18,6 +19,7 @@ export default function SignUp() {
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+250");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,7 +40,7 @@ export default function SignUp() {
     localStorage.setItem("nexapayUser", email);
 
     // Redirect to dashboard
-    window.location.href = "/dashboard";
+    navigate("/dashboard");
   };
 
   return (
@@ -109,7 +111,7 @@ export default function SignUp() {
         <p className="text-sm text-center text-slate-400 mt-4">
           Already have an account?
           <span
-            onClick={() => (window.location.href = "/signin")}
+            onClick={() => navigate("/signin")}
             className="text-cyan-400 cursor-pointer ml-1"
           >
             Sign In

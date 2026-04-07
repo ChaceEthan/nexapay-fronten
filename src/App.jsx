@@ -4,9 +4,18 @@ import Dashboard from "./pages/Dashboard";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 
-export default function App() {
+// Protected Route component
+function ProtectedRoute({ children }) {
   const user = localStorage.getItem("nexapayUser");
+  
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+  
+  return children;
+}
 
+export default function App() {
   return (
     <Routes>
       {/* Default = Signup */}
@@ -19,11 +28,14 @@ export default function App() {
       <Route
         path="/dashboard"
         element={
-          user ? <Dashboard /> : <Navigate to="/signin" replace />
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
         }
       />
 
+      {/* Catch all - redirect to signup */}
       <Route path="*" element={<Navigate to="/signup" replace />} />
     </Routes>
   );
-} 
+}
