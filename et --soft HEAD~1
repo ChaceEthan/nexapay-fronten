@@ -1,0 +1,40 @@
+[33meb6b508[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix auth flow, wallet creation, routing and crash issues
+[33mbe7886f[m NexaPay: fixed transactions, balance, send flow, UI improvements
+[33m5d1a5ec[m NexaPay stable version - crash fixes
+[33m58f63f6[m Fix: remove signin, fix wallet vault flow, fix freighter integration
+[33m68a08ba[m Initial secure wallet implementation (PBKDF2 + secure vault)
+[33m9092108[m Fix QR auto-fill issue and improve scan UX
+[33mebe6b65[m Add NexaPay favicon and PWA icons
+[33m22e89e1[m Improve Dashboard.jsx qr scan
+[33m702a669[m Improve signup UX: East Africa countries, flags, phone format, OTP flow
+[33m16395a9[m 🔥 NexaPay Wallet update - fixed PIN, send, prices, UI
+[33m6585e9c[m fix: deployment issues (case-sensitivity and dependency cleanup)
+[33m54dac00[m fix: logo added + wallet flow improved + settings updated
+[33mcb847b0[m Remove husky from prepare script in package.json
+[33m178adde[m fix freighter connection + wallet flow
+[33m421c6a7[m 🔥 NexaPay wallet upgrade: create/import wallet + fixes
+[33m2d9c12d[m 🔥 NexaPay full wallet upgrade (auth + dashboard + routes + fixes)
+[33m4df0430[m � remove husky
+[33m2d65b08[m update wallet system + fixes
+[33m2488f41[m Emergency fix
+[33mdaee8e4[m update NexaPay Wallet name + env changes
+[33m860c7a2[m Secure wallet flow + token auth + dashboard & transaction update
+[33m468f685[m (src/pages/server.js)
+[33m6d8ea37[m Reduce contrast on Auth/SignIn/SignUp pages
+[33m991070f[m Fix SignIn page clean version
+[33m5d56871[m Update Signin page with timeout fetch and API env handling
+[33md4de8e7[m Build frontend for production
+[33m2e9ac6a[m Fix React Router deprecation warnings and enhance transaction history with payments endpoint
+[33me671cc7[m Add Vite proxy to fix CORS during local development
+[33m16c02ee[m Update package.json and package-lock.json for dependency fixes
+[33m9ff602b[m Fix missing useState import in SignUp.jsx and SignIn.jsx and apply SPA patterns
+[33md144e8d[m Verify SignUp/SignIn after env fix and update frontend
+[33m3e39dda[m Standardize environment variables and fix API route paths for SignUp/SignIn
+[33m618d145[m Rename Signup.jsx to SignUp.jsx
+[33me641781[m Rename Signin.jsx to SignIn.jsx
+[33m6213ba3[m Update: Add auth flow (SignUp default), clean SignIn, move wallet connect to dashboard, add Logo component
+[33m7bc7312[m Refactor: Move Dashboard to pages, add SignUp/SignIn pages, add Logo.jsx
+[33m610edd9[m feat: add mobile wallet input, auto-save, and balance fetch for Dashboard
+[33m6bd51ee[m feat: add mobile wallet input, auto-save, and balance fetch for Dashboard
+[33m57e9c36[m Fix TransactionForm QR code, mobile wallet, and syntax errors
+[33m745cf20[m[33m ([m[1;31morigin/v0/dicksonmayun123-2632-a2127208[m[33m)[m Clean NexaPay frontend final
