@@ -78,8 +78,7 @@ export default function QRScanner({ onClose, onScan }) {
         () => {} // Quiet scan errors
       );
       tuneCameraTrack();
-    } catch (err) {
-      console.error("Scanner Error:", err);
+    } catch {
       setError("Hardware Access Failed. Check Permissions.");
     }
   };

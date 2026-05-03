@@ -1,42 +1,24 @@
-// import React, { useEffect } from 'react'; // No longer needed
-// import { useLocation, useNavigate } from 'react-router-dom'; // No longer needed
-// import { useDispatch } from 'react-redux'; // No longer needed
-// import { setToken } from '../authSlice.js'; // setToken removed, not exported
-import { useNavigate } from 'react-router-dom'; // Only navigate is needed now
-import { Loader2 } from 'lucide-react'; // For loading spinner
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 /**
- * OAuthCallbackHandler
- * Handles the final step of server-side OAuth redirect flows (e.g., Apple).
- * Extracts tokens from the URL and directs the user to either onboarding or the selector.
- * 
- * 🔴 CRITICAL: With the complete removal of the sign-in system, this component
- * should no longer be functional. Its purpose was tied to authentication.
- * It is now repurposed to immediately redirect to the main wallet flow.
+ * Legacy auth callbacks now redirect into the wallet-first flow.
  */
 export default function OAuthCallbackHandler() {
-  // const location = useLocation(); // Not needed as we no longer process URL params
   const navigate = useNavigate();
-  // const dispatch = useDispatch(); // Not needed as setToken is removed
 
   useEffect(() => {
-    // Immediately redirect to the primary wallet entry point.
-    // The App.jsx root will then handle further routing based on wallet state.
-    // This ensures no lingering auth logic or incorrect states.
-    console.warn("OAuthCallbackHandler hit, redirecting to root wallet flow.");
-    
-    // We can directly navigate to the root, and App.jsx's logic will take over.
-    // For clarity, we can still determine initial entry points like so:
-        const wallets = JSON.parse(localStorage.getItem("nexa_wallets") || "[]");
-        
-        if (wallets.length === 0) {
-          navigate('/welcome', { replace: true }); // FIX 3: Start onboarding if no wallets
-        } else {
-          // FIX 3: If wallets exist, check for PIN setup or go to wallet selection
-          navigate(localStorage.getItem("nexa_pin") ? '/select-wallet' : '/set-pin', { replace: true });
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]); // Only navigate is a dependency
+    console.warn('OAuthCallbackHandler hit, redirecting to root wallet flow.');
+
+    const wallets = JSON.parse(localStorage.getItem('nexa_wallets') || '[]');
+    if (wallets.length === 0) {
+      navigate('/welcome', { replace: true });
+      return;
+    }
+
+    navigate(localStorage.getItem('nexa_pin') ? '/vaults' : '/set-pin', { replace: true });
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-[#0b0e11] flex items-center justify-center text-white p-6">

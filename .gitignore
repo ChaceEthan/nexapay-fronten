@@ -1,17 +1,26 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
-.vite
-
-# Environment variables
+# Environment
 .env
 .env.*
 
-# Cache
-.eslintcache
+# Build and test output
+dist/
+build/
+coverage/
+.vite/
 
-# OS specific
-.DS_Store
+# Logs and temporary files
 *.log
+*.tmp
+
+# Runtime data
+wallets_db.json
+
+# Local frontend workspace
+frontend/
+
+# OS and editor noise
+.DS_Store
+.eslintcache

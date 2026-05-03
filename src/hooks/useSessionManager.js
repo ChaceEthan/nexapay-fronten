@@ -20,14 +20,13 @@ export default function useSessionManager() {
 
   // Fix: Unified state selection from auth slice
   const { 
-    lastActivity, 
-    hasWallet, 
-    isInitialized,
-    isStrictMode,
-    selectedWalletId 
-  } = useSelector((state) => state.auth || {});
+    lastActivity = Date.now(), 
+    hasWallet = false, 
+    isInitialized = false,
+    isStrictMode = false,
+  } = useSelector((state) => state?.auth || {});
 
-  const decryptedSecretKey = useSelector((state) => state.wallet.decryptedSecretKey);
+  const decryptedSecretKey = useSelector((state) => state?.wallet?.decryptedSecretKey || null);
 
   const isLocked = useSelector(selectIsLocked);
 
@@ -51,7 +50,6 @@ export default function useSessionManager() {
     const checkInterval = setInterval(() => {
       const elapsed = Date.now() - lastActivity;
       if (elapsed > INACTIVITY_LIMIT) {
-        console.warn("🕒 Session Timeout: App locking due to inactivity.");
         dispatch(lockWallet()); // Securely lock the vault
       } else if (elapsed > INACTIVITY_LIMIT - 30000) {
         dispatch(showToast({ 

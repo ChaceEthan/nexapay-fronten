@@ -281,7 +281,9 @@ function App() {
         <Toast />
         <div className="min-h-screen bg-[#080a0c]">
           {/* SIDEBAR HUB */}
-          <Sidebar open={open} setOpen={setOpen} />
+          <ErrorBoundary mini>
+            <Sidebar open={open} setOpen={setOpen} />
+          </ErrorBoundary>
 
           {/* MAIN TERMINAL HUB */}
           <div className="min-h-screen flex flex-col md:pl-72">

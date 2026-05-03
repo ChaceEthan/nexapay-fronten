@@ -209,7 +209,8 @@ export default function Dashboard() {
       const prevBalance = balances.find(b => b.asset_type === 'native')?.balance || "0";
       
       dispatch(fetchWalletData(activeWallet.address)).unwrap().then((result) => {
-        const newBalance = result.balances.find(b => b.asset_type === 'native')?.balance || "0";
+        const nextBalances = Array.isArray(result?.balances) ? result.balances : [];
+        const newBalance = nextBalances.find(b => b.asset_type === 'native')?.balance || "0";
         
         // 🏦 FUNDED NOTIFICATION: Binance-style detection
         if (parseFloat(newBalance) > parseFloat(prevBalance) + 0.1) {
@@ -221,7 +222,7 @@ export default function Dashboard() {
             walletId: activeWalletId
           }));
         }
-      });
+      }).catch(() => null);
     }
   }, [activeWallet?.address, dispatch]);
 

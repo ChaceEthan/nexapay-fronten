@@ -3,44 +3,42 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { fetchWalletBalance } from '../walletSlice.js';
+import { fetchWalletData } from '../walletSlice.js';
 
 /**
  * StellarCallbackHandler handles mobile deep link callbacks (SEP-7).
- * It parses the status from the URL and redirects the user back to the dashboard.
  */
 export default function StellarCallbackHandler() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { token } = useSelector((state) => state.auth);
+  const activeWalletId = useSelector((state) => state?.wallet?.activeWalletId);
+  const activeWallet = useSelector((state) => {
+    const wallets = state?.wallet?.wallets || [];
+    return wallets.find((wallet) => wallet?.id === activeWalletId) || null;
+  });
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const status = queryParams.get('status');
-    const error = queryParams.get('error');
 
+    if (status === 'success' && activeWallet?.address) {
+      dispatch(fetchWalletData(activeWallet.address));
 
-    if (status === 'success' && token) {
-      // Refresh balances in Redux on successful transaction
-      dispatch(fetchWalletBalance(token));
-
-      // Trigger success animation
       confetti({
         particleCount: 150,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ["#06b6d4", "#ffffff", "#10b981"],
+        colors: ['#06b6d4', '#ffffff', '#10b981'],
       });
     }
 
-    // Redirect to dashboard after showing the status for a few seconds
     const timer = setTimeout(() => {
       navigate('/dashboard', { replace: true });
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [location, navigate, dispatch]);
+  }, [location, navigate, dispatch, activeWallet?.address]);
 
   const queryParams = new URLSearchParams(location.search);
   const status = queryParams.get('status');
@@ -57,7 +55,7 @@ export default function StellarCallbackHandler() {
             <h1 className="text-2xl font-bold text-white mb-2">Transfer Successful</h1>
             <p className="text-[#848e9c] text-sm mb-4">Your transaction was processed successfully.</p>
           </>
-        ) : (status === 'error' || error) ? (
+        ) : status === 'error' || error ? (
           <>
             <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <XCircle size={32} className="text-rose-400" />

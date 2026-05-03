@@ -17,11 +17,23 @@ import { trackActiveWallet } from "@/utils/analytics";
 import { fundTestnetAccount } from "@/services/stellar";
 import BackButton from "../components/BackButton";
 
+const readConfirmedSetup = () => {
+  try {
+    const rawData = sessionStorage.getItem("wallet_setup");
+    if (!rawData) return null;
+    const data = JSON.parse(rawData);
+    return data && typeof data === "object" ? data : null;
+  } catch {
+    sessionStorage.removeItem("wallet_setup");
+    return null;
+  }
+};
+
 export default function SetPIN() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const network = useSelector((state) => state.auth.network || "testnet");
+  const network = useSelector((state) => state?.auth?.network || "testnet");
 
   const [isActivating, setIsActivating] = useState(false);
   const [walletName, setWalletName] = useState("");
@@ -31,14 +43,13 @@ export default function SetPIN() {
 
   // ✅ Guard: redirect if no confirmed setup data
   useEffect(() => {
-    const rawData = sessionStorage.getItem("wallet_setup");
-    if (!rawData) {
+    const data = readConfirmedSetup();
+    if (!data) {
       navigate("/welcome", { replace: true });
       return;
     }
-    const data = JSON.parse(rawData);
     if (!data.confirmed) {
-      navigate("/welcome", { replace: true });
+      navigate(data.mnemonic ? "/confirm-phrase" : "/welcome", { replace: true });
     }
   }, [navigate]);
 
@@ -62,16 +73,15 @@ export default function SetPIN() {
       return;
     }
 
-    const rawData = sessionStorage.getItem("wallet_setup");
-    if (!rawData) {
+    const data = readConfirmedSetup();
+    if (!data) {
       navigate("/welcome", { replace: true });
       return;
     }
-    const data = JSON.parse(rawData);
 
     if (!data.confirmed) {
       setError("Wallet setup not confirmed. Please restart.");
-      navigate("/welcome", { replace: true });
+      navigate(data.mnemonic ? "/confirm-phrase" : "/welcome", { replace: true });
       return;
     }
 

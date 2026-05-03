@@ -22,7 +22,7 @@ import { authenticateBiometric, isWebAuthnSupported } from "@/utils/webauthn";
 export default function LockScreen({ mode = "MASTER" }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { activeWalletId } = useSelector((s) => s.wallet);
+  const activeWalletId = useSelector((s) => s?.wallet?.activeWalletId || null);
   
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);

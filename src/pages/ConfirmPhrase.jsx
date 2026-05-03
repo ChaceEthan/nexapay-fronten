@@ -3,6 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 import BackButton from "../components/BackButton";
 
+const readSetupData = () => {
+  try {
+    const rawData = sessionStorage.getItem("wallet_setup");
+    if (!rawData) return null;
+    const data = JSON.parse(rawData);
+    return data && typeof data === "object" ? data : null;
+  } catch {
+    sessionStorage.removeItem("wallet_setup");
+    return null;
+  }
+};
+
 /**
  * ConfirmPhrase
  * Verification layer for the newly generated recovery phrase.
@@ -15,15 +27,20 @@ export default function ConfirmPhrase() {
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const rawData = sessionStorage.getItem("wallet_setup");
-  const walletData = rawData ? JSON.parse(rawData) : null;
+  const [walletData, setWalletData] = useState(null);
 
   useEffect(() => {
-    if (!walletData || !walletData.mnemonic) {
+    const data = readSetupData();
+    if (!data || !data.mnemonic) {
       navigate("/create-wallet", { replace: true });
+      return;
     }
-  }, [navigate, walletData]);
+    if (data.confirmed) {
+      navigate("/set-pin", { replace: true });
+      return;
+    }
+    setWalletData(data);
+  }, [navigate]);
 
   if (!walletData) return null;
 

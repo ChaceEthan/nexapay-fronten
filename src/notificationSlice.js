@@ -90,8 +90,7 @@ export const selectNotificationsForActiveWallet = (state) => {
     const notifications = state?.notifications?.notifications || [];
     if (!activeWalletId) return [];
     return notifications.filter(n => n.walletId === activeWalletId);
-  } catch (e) {
-    console.warn("selectNotificationsForActiveWallet fallback", e);
+  } catch {
     return [];
   }
 };

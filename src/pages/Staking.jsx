@@ -17,8 +17,13 @@ import { addNotification } from "@/notificationSlice";
 
 export default function Staking() {
   const dispatch = useDispatch();
-  const { activeStakes, totalRewardsEarned } = useSelector((state) => state.staking);
-  const { wallets, activeWalletId, balances } = useSelector((state) => state.wallet);
+  const stakingState = useSelector((state) => state?.staking || {});
+  const walletState = useSelector((state) => state?.wallet || {});
+  const activeStakes = Array.isArray(stakingState.activeStakes) ? stakingState.activeStakes : [];
+  const totalRewardsEarned = Number(stakingState.totalRewardsEarned) || 0;
+  const wallets = Array.isArray(walletState.wallets) ? walletState.wallets : [];
+  const activeWalletId = walletState.activeWalletId || null;
+  const balances = Array.isArray(walletState.balances) ? walletState.balances : [];
   
   const activeWallet = wallets?.find(w => w?.id === activeWalletId);
   const xlmBalance = parseFloat(balances?.find(b => b?.asset_type === 'native')?.balance || "0");
@@ -99,7 +104,7 @@ export default function Staking() {
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <span className="text-xs font-black text-gray-500">XLM</span>
                     <button 
-                      onClick={() => setStakeAmount((xlmBalance - 1).toString())}
+                      onClick={() => setStakeAmount(Math.max(0, xlmBalance - 1).toString())}
                       className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] font-black text-cyan-500 uppercase tracking-widest border border-white/5"
                     >
                       MAX

@@ -11,47 +11,39 @@ const SLICES = {
   wallet: path.join(ROOT_DIR, 'walletSlice.js'),
 };
 
-/**
- * Extracts action names from a Redux Slice file.
- */
-function getExportedActions(filePath) {
+function getNamedExports(filePath) {
   if (!fs.existsSync(filePath)) return new Set();
+
   const content = fs.readFileSync(filePath, 'utf-8');
-  const actions = new Set();
-
-  // Pattern 1: Matches standard slice actions: export const { action1, action2 } = slice.actions;
-  const sliceActionsRegex = /export\s+const\s+\{([\s\S]+?)\}\s*=\s*\w+Slice\.actions/g;
+  const exports = new Set();
   let match;
-  while ((match = sliceActionsRegex.exec(content)) !== null) {
-    match[1].split(',').forEach(name => {
-      const trimmed = name.trim();
-      if (trimmed && !trimmed.startsWith('//')) {
-        actions.add(trimmed);
-      }
-    });
+
+  const declarationRegex = /export\s+const\s+([A-Za-z_$][\w$]*)/g;
+  while ((match = declarationRegex.exec(content)) !== null) {
+    exports.add(match[1]);
   }
 
-  // Pattern 2: Matches standalone createAction exports: export const ACTION_NAME = createAction(...);
-  const createActionRegex = /export\s+const\s+(\w+)\s*=\s*createAction/g;
-  while ((match = createActionRegex.exec(content)) !== null) {
-    actions.add(match[1].trim());
+  const functionRegex = /export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g;
+  while ((match = functionRegex.exec(content)) !== null) {
+    exports.add(match[1]);
   }
 
-  // Pattern 3: Matches createAsyncThunk exports: export const ACTION_NAME = createAsyncThunk(...);
-  const createAsyncThunkRegex = /export\s+const\s+(\w+)\s*=\s*createAsyncThunk/g;
-  while ((match = createAsyncThunkRegex.exec(content)) !== null) {
-    actions.add(match[1].trim());
+  const destructuredRegex = /export\s+const\s+\{([^}]+)\}\s*=\s*\w+Slice\.actions/g;
+  while ((match = destructuredRegex.exec(content)) !== null) {
+    match[1]
+      .split(',')
+      .map((name) => name.trim())
+      .filter((name) => name && !name.startsWith('//'))
+      .forEach((name) => exports.add(name.split(/\s+as\s+/)[0].trim()));
   }
 
-  return actions;
+  return exports;
 }
 
-/**
- * Recursively finds all JS/JSX files in a directory.
- */
 function getFiles(dir, fileList = []) {
-  const files = fs.readdirSync(dir);
-  files.forEach(file => {
+  if (!fs.existsSync(dir)) return fileList;
+
+  fs.readdirSync(dir).forEach((file) => {
     const name = path.join(dir, file);
     if (fs.statSync(name).isDirectory()) {
       getFiles(name, fileList);
@@ -59,56 +51,53 @@ function getFiles(dir, fileList = []) {
       fileList.push(name);
     }
   });
+
   return fileList;
 }
 
 function validate() {
-  console.log("🔍 Starting Redux Export Validation...");
-  
-  const exports = {
-    auth: getExportedActions(SLICES.auth),
-    wallet: getExportedActions(SLICES.wallet),
+  console.log('Starting Redux export validation...');
+
+  const namedExports = {
+    auth: getNamedExports(SLICES.auth),
+    wallet: getNamedExports(SLICES.wallet),
   };
 
   const files = getFiles(ROOT_DIR);
   let errorCount = 0;
 
-  files.forEach(file => {
-    // Skip the slice files themselves
+  files.forEach((file) => {
     if (Object.values(SLICES).includes(file)) return;
 
     const content = fs.readFileSync(file, 'utf-8');
-    
-    // Regex to find imports from our specific slices
-    // Matches: import { a, b } from "@/authSlice" or "../authSlice"
-    const importRegex = /import\s+\{([\s\S]+?)\}\s+from\s+['"](?:@\/|\.\/|\.\.\/)*(authSlice|walletSlice)(?:\.js)?['"]/g;
-    
+    const importRegex = /import\s+\{([^}]+)\}\s+from\s+['"](?:@\/|\.\/|\.\.\/)*(authSlice|walletSlice)(?:\.js)?['"]/g;
     let match;
-    while ((match = importRegex.exec(content)) !== null) {
-      const importedItems = match[1].split(',').map(i => i.trim()).filter(Boolean);
-      const sourceSlice = match[2].toLowerCase().includes('auth') ? 'auth' : 'wallet';
-      const availableActions = exports[sourceSlice];
 
-      importedItems.forEach(item => {
-        // Handle aliases (e.g., lockWallet as logout)
-        const actionName = item.split(/\s+as\s+/)[0].trim();
-        
-        if (!availableActions.has(actionName)) {
-          console.error(`\x1b[31m[ERROR]\x1b[0m In ${path.relative(ROOT_DIR, file)}:`);
-          console.error(`  Action "${actionName}" is not exported by ${sourceSlice}Slice.js\n`);
-          errorCount++;
+    while ((match = importRegex.exec(content)) !== null) {
+      const importedItems = match[1]
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const sourceSlice = match[2].toLowerCase().includes('auth') ? 'auth' : 'wallet';
+      const availableExports = namedExports[sourceSlice];
+
+      importedItems.forEach((item) => {
+        const exportName = item.split(/\s+as\s+/)[0].trim();
+        if (!availableExports.has(exportName)) {
+          console.error(`[ERROR] In ${path.relative(ROOT_DIR, file)}:`);
+          console.error(`  "${exportName}" is not exported by ${sourceSlice}Slice.js\n`);
+          errorCount += 1;
         }
       });
     }
   });
 
   if (errorCount > 0) {
-    console.log(`\x1b[31m❌ Validation failed with ${errorCount} errors.\x1b[0m`);
+    console.error(`Validation failed with ${errorCount} error(s).`);
     process.exit(1);
-  } else {
-    console.log("\x1b[32m✅ All Redux imports are valid!\x1b[0m");
-    process.exit(0);
   }
+
+  console.log('All Redux imports are valid.');
 }
 
 validate();

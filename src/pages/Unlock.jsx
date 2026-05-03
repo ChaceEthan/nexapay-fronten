@@ -22,7 +22,7 @@ export default function Unlock() {
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const { activeWalletId } = useSelector((state) => state.wallet);
+  const activeWalletId = useSelector((state) => state?.wallet?.activeWalletId || null);
 
   // ⏱ Countdown for lockout
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function Unlock() {
       const wallets = JSON.parse(
         localStorage.getItem("nexa_wallets") || "[]"
       );
-      const currentWallet = wallets.find((w) => w.id === activeWalletId);
+      const currentWallet = Array.isArray(wallets) ? wallets.find((w) => w.id === activeWalletId) : null;
       if (currentWallet?.address) {
         dispatch(syncWalletState(currentWallet.address));
       }

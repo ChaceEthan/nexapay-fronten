@@ -33,14 +33,14 @@ const systemNav = [
 export default function Sidebar({ open, setOpen }) {
   const dispatch = useDispatch();
   const location = useLocation();
-  const { isStrictMode } = useSelector((state) => state.auth);
+  const isStrictMode = useSelector((state) => state?.auth?.isStrictMode || false);
 
   const onLock = () => {
     try { 
       dispatch(lockWallet());
       if (setOpen) setOpen(false); 
-    } catch (err) {
-      console.error("Lock error:", err);
+    } catch {
+      if (setOpen) setOpen(false);
     }
   };
 
@@ -154,8 +154,13 @@ export default function Sidebar({ open, setOpen }) {
         </aside>
       </>
     );
-  } catch (error) {
-    console.error("Sidebar Render Crash:", error);
-    return null;
+  } catch {
+    return (
+      <aside className="fixed top-0 left-0 h-screen w-72 bg-[#0b0e11] border-r border-white/5 z-[100] hidden md:flex items-center justify-center p-6">
+        <div className="text-center text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
+          Navigation unavailable
+        </div>
+      </aside>
+    );
   }
 }

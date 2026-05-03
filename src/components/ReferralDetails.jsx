@@ -10,15 +10,14 @@ export default function ReferralDetails() {
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { 
-    referralCode, 
-    referralsCount, 
-    pendingRewardsXLM, 
-    claimedRewardsXLM,
-    testnetRewardsHistory 
-  } = useSelector((state) => state.referral);
+  const referralState = useSelector((state) => state?.referral || {});
+  const referralCode = referralState.referralCode || "";
+  const referralsCount = Number(referralState.referralsCount) || 0;
+  const pendingRewardsXLM = Number(referralState.pendingRewardsXLM) || 0;
+  const claimedRewardsXLM = Number(referralState.claimedRewardsXLM) || 0;
+  const testnetRewardsHistory = Number(referralState.testnetRewardsHistory) || 0;
   
-  const { network } = useSelector((state) => state.auth);
+  const network = useSelector((state) => state?.auth?.network || "testnet");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode);

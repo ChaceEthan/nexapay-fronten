@@ -37,8 +37,7 @@ export const getMarketPrices = async () => {
 
     cacheMarketData(market);
     return market;
-  } catch (error) {
-    console.warn("Market fallback from cache:", error.message);
+  } catch {
     return getCachedMarketData();
   }
 };

@@ -13,18 +13,16 @@ const SystemStabilizer = () => {
       // 1. Vault Engine Recovery
       // Ensure the global singleton reference is intact and initialized
       if (!window.__nexaVault) {
-        console.warn("🛡️ SystemStabilizer: Vault reference lost. Re-attaching singleton...");
         window.__nexaVault = vaultInstance;
       }
 
       try {
         if (window.__nexaVault.getStatus() !== "ACTIVE") {
-          console.warn("🛡️ SystemStabilizer: Vault inactive. Re-initializing...");
           window.__nexaVault.initialize();
         }
         window.__nexaVault.ping();
-      } catch (err) {
-        console.error("🛡️ SystemStabilizer: Vault critical failure:", err);
+      } catch {
+        window.__nexaVault = vaultInstance;
       }
 
       // 2. Market Socket Recovery
@@ -36,7 +34,6 @@ const SystemStabilizer = () => {
 
         // If stalled and no cleanup flag is set, force a reset to trigger the reconnect loop in useMarketSocket
         if (isStalled && !window.__nexaSocket_cleanup) {
-          console.warn("🛡️ SystemStabilizer: Market Socket stalled. Triggering auto-recovery...");
           if (typeof window.forceNexaSocketReset === 'function') {
             window.forceNexaSocketReset();
           }

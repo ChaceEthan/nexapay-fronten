@@ -49,7 +49,6 @@ export default function WalletChoice() {
       }
     } catch (err) {
       setFreighterError(err.message || "Failed to connect Freighter wallet");
-      console.error("Freighter connection error:", err);
     }
   };
 

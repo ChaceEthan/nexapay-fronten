@@ -52,6 +52,13 @@ export default defineConfig({
         target: backendTarget,
         changeOrigin: true,
         secure: false,
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+      '/ws': {
+        target: backendTarget,
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       },
     },
   }

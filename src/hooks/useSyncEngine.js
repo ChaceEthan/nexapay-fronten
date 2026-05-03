@@ -17,7 +17,7 @@ export default function useSyncEngine() {
   
   // Access security and wallet states from Redux
   const isLocked = useSelector(selectIsLocked);
-  const { address, autoRefreshEnabled } = useSelector((state) => state.wallet);
+  const { address = "", autoRefreshEnabled = false } = useSelector((state) => state?.wallet || {});
 
   useEffect(() => {
     // 🛡️ SECURITY & PREFERENCE CHECK

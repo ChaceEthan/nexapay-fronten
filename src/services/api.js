@@ -2,6 +2,8 @@ import axios from "axios";
 
 const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || "";
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "");
+const RAW_MARKET_API_BASE_URL = import.meta.env.VITE_MARKET_API || RAW_API_BASE_URL;
+export const MARKET_API_BASE_URL = RAW_MARKET_API_BASE_URL.replace(/\/api\/?$/, "");
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,7 +14,16 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
+export const marketApi = axios.create({
+  baseURL: MARKET_API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
+
+const attachAuthHeader = (config) => {
   if (typeof window === "undefined") return config;
 
   const token = localStorage.getItem("nexapayToken");
@@ -21,7 +32,10 @@ api.interceptors.request.use((config) => {
   }
 
   return config;
-});
+};
+
+api.interceptors.request.use(attachAuthHeader);
+marketApi.interceptors.request.use(attachAuthHeader);
 
 export const safeNumber = (value, fallback = 0) => {
   const num = Number.parseFloat(value);
@@ -323,12 +337,11 @@ const fetchMarket = async (force = false) => {
   if (!force && isFresh) return marketCache;
 
   try {
-    const response = await api.get(backendPath("/api/market"));
+    const response = await marketApi.get(backendPath("/api/market"));
     marketCache = normalizeMarketPayload(response.data, true);
     persistMarketCache();
     return marketCache;
-  } catch (error) {
-    console.warn("Market API unavailable; using cached market data.", error.message);
+  } catch {
     marketCache = getCachedMarket();
     return marketCache;
   }
@@ -341,7 +354,7 @@ export const getMarketData = async (options = {}) => {
 
 export const getXlmMarketData = async () => {
   try {
-    const response = await api.get(backendPath("/api/market/xlm"));
+    const response = await marketApi.get(backendPath("/api/market/xlm"));
     const prices = normalizePriceMap(response.data, marketCache.prices);
 
     marketCache = {
@@ -361,8 +374,7 @@ export const getXlmMarketData = async () => {
       change: safeNumber(marketCache.prices.XLM_CHANGE, 0),
       isLive: true,
     };
-  } catch (error) {
-    console.warn("XLM market API unavailable; using cached XLM price.", error.message);
+  } catch {
     const cached = getCachedMarket();
     return {
       price: safePrice(cached.prices.XLM, DEFAULT_XLM_PRICE),
@@ -432,7 +444,7 @@ export const parseQrPayload = async (rawValue) => {
 };
 
 export const sendBackendTransaction = async (paymentData) => {
-  const response = await api.post(backendPath("/api/transactions/send"), paymentData);
+  const response = await api.post(backendPath("/api/transaction"), paymentData);
   return response.data;
 };
 

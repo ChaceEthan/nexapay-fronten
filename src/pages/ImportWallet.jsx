@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useNavigate, useResolvedPath } from "react-router-dom";
 import { Keypair } from "@stellar/stellar-sdk";
 import { Download, AlertCircle } from "lucide-react";
@@ -7,46 +7,45 @@ import { v4 as uuidv4 } from "uuid";
 import * as bip39 from "bip39";
 import * as stellar from "@/services/stellar";
 import { setActiveWallet, findWalletByAddress } from "../walletSlice";
-import { setUnlocked } from "../authSlice";
 import BackButton from "../components/BackButton";
+
+const readSetupData = () => {
+  try {
+    const rawData = sessionStorage.getItem("wallet_setup");
+    if (!rawData) return null;
+    const data = JSON.parse(rawData);
+    return data && typeof data === "object" ? data : null;
+  } catch {
+    sessionStorage.removeItem("wallet_setup");
+    return null;
+  }
+};
 
 export default function ImportWallet() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const resolvedPath = useResolvedPath(window.location.pathname); // For stable path checks
+  const resolvedPath = useResolvedPath(window.location.pathname);
 
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const network = useSelector((state) => state.auth?.network || "testnet");
 
-  // ✅ Auto-fill if redirected from successful confirmation
   React.useEffect(() => {
-    const rawData = sessionStorage.getItem("wallet_setup");
-    if (rawData) {
-      try {
-        const data = JSON.parse(rawData);
-        if (data.confirmed && data.mnemonic) {
-          setInput(data.mnemonic);
-        }
-      } catch (e) {
-        console.error("Failed to parse wallet_setup:", e);
-      }
+    const data = readSetupData();
+    if (data?.confirmed && data?.mnemonic) {
+      setInput(data.mnemonic);
     }
   }, []);
-
 
   const handleImport = async (e) => {
     if (e) e.preventDefault();
     if (loading) return;
 
     setError("");
+    setLoading(true);
 
     try {
-      setLoading(true);
-
       const cleanedInput = input.trim().replace(/\s+/g, " ");
-
       if (!cleanedInput) {
         setError("Enter a recovery phrase or secret key.");
         return;
@@ -54,126 +53,88 @@ export default function ImportWallet() {
 
       const words = cleanedInput.split(" ");
       const isMnemonic = words.length >= 12;
-
-      let publicKey, secretKey;
+      let publicKey = "";
+      let secretKey = "";
 
       if (isMnemonic) {
-        // ✅ Validate word count (12 or 24 words)
         if (words.length !== 12 && words.length !== 24) {
           setError("Recovery phrase must be 12 or 24 words.");
           return;
         }
 
-        // ✅ Validate using bip39
-        const isValid = bip39.validateMnemonic(cleanedInput);
-        if (!isValid) {
+        if (!bip39.validateMnemonic(cleanedInput)) {
           setError("Invalid recovery phrase. Check spelling and word order.");
           return;
         }
+
+        const setupData = readSetupData();
+        if (setupData?.mnemonic === cleanedInput && !setupData.confirmed) {
+          setError("Finish confirming this recovery phrase before importing it.");
+          return;
+        }
+
         const wallet = stellar.deriveKeypairFromMnemonic(cleanedInput);
         publicKey = wallet.publicKey;
         secretKey = wallet.secretKey;
 
-        // ✅ Skip Horizon check if this is a newly created & confirmed wallet from this session
-        let skipHorizonCheck = false;
-        const setupData = sessionStorage.getItem("wallet_setup");
-        if (setupData) {
-          try {
-            const parsed = JSON.parse(setupData);
-            if (parsed.mnemonic === cleanedInput) {
-              if (!parsed.confirmed) {
-                setError("Finish creating your wallet before importing it.");
-                setLoading(false);
-                return;
-              }
-              skipHorizonCheck = true;
-            }
-          } catch (e) {
-            console.error("Failed to parse wallet_setup:", e);
-          }
-        }
-
-        // ✅ Verify account exists on Stellar network (Horizon check) - Skip if it's a new verified setup
-        if (!skipHorizonCheck) {
-          try {
-            const horizonUrl = network === "public" 
-              ? "https://horizon.stellar.org" 
-              : "https://horizon-testnet.stellar.org";
-            
-            const response = await fetch(`${horizonUrl}/accounts/${publicKey}`);
-            
-            if (response.status === 404) {
-              setError(`Wallet not found on ${network}. Ensure the account is funded with at least 1 XLM.`);
-              setLoading(false);
-              return;
-            }
-
-            if (!response.ok) {
-              throw new Error("Network verification failed. Please try again.");
-            }
-          } catch (err) {
-            if (err.message.includes("Wallet not found")) throw err;
-            console.error("Horizon check error:", err);
-          }
-        }
-      } else {
-        // ✅ Secret key path
-        if (!cleanedInput.startsWith("S") || cleanedInput.length < 56) {
-          setError("Invalid secret key. Should start with 'S' and be 56+ characters.");
+        const existingWallet = findWalletByAddress(publicKey);
+        if (existingWallet) {
+          setError("This wallet already exists. Select it from Vaults.");
           return;
         }
 
-        try {
-          const pair = Keypair.fromSecret(cleanedInput);
-          publicKey = pair.publicKey();
-          secretKey = cleanedInput;
-        } catch {
-          setError("Invalid Stellar secret key format.");
-          return;
-        }
-      }
-
-      if (isMnemonic) {
-        const newWallet = {
-          id: uuidv4(),
-          address: publicKey,
-          mnemonic: cleanedInput,
-          secretKey,
-          walletType: "INTERNAL",
-          isImported: true,
-          confirmed: false,
-        };
-
-        sessionStorage.setItem("wallet_setup", JSON.stringify(newWallet));
+        sessionStorage.setItem(
+          "wallet_setup",
+          JSON.stringify({
+            id: uuidv4(),
+            address: publicKey,
+            mnemonic: cleanedInput,
+            secretKey,
+            walletType: "INTERNAL",
+            isImported: true,
+            confirmed: false,
+          })
+        );
         navigate("/confirm-phrase", { replace: true });
         return;
       }
 
-      // ✅ Check if wallet already exists in localStorage
-      const existingWallet = findWalletByAddress(publicKey);
+      if (!cleanedInput.startsWith("S") || cleanedInput.length < 56) {
+        setError("Invalid secret key. Should start with 'S' and be 56+ characters.");
+        return;
+      }
 
+      try {
+        const pair = Keypair.fromSecret(cleanedInput);
+        publicKey = pair.publicKey();
+        secretKey = cleanedInput;
+      } catch {
+        setError("Invalid Stellar secret key format.");
+        return;
+      }
+
+      const existingWallet = findWalletByAddress(publicKey);
       if (existingWallet) {
-        // ✅ CASE 1: Wallet exists → switch to it, go to unlock
         dispatch(setActiveWallet(existingWallet.id));
         navigate("/unlock-wallet", { replace: true });
         return;
       }
 
-      // ✅ CASE 2: New wallet → store temp data in memory, go to SetPIN
-      const newWallet = {
-        id: uuidv4(),
-        address: publicKey,
-        mnemonic: null,
-        secretKey: secretKey,
-        walletType: "INTERNAL",
-        isImported: true,
-        confirmed: true
-      };
-
-      sessionStorage.setItem("wallet_setup", JSON.stringify(newWallet));
+      sessionStorage.setItem(
+        "wallet_setup",
+        JSON.stringify({
+          id: uuidv4(),
+          address: publicKey,
+          mnemonic: null,
+          secretKey,
+          walletType: "INTERNAL",
+          isImported: true,
+          confirmed: true,
+        })
+      );
       navigate("/set-pin", { replace: true });
     } catch (err) {
-      setError(err.message || "Import failed. Check your input.");
+      setError(err?.message || "Import failed. Check your input.");
     } finally {
       setLoading(false);
     }
@@ -206,7 +167,7 @@ export default function ImportWallet() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && resolvedPath.pathname === "/import-wallet") { // Ensure handler is scoped to this page
+              if (e.key === "Enter" && !e.shiftKey && resolvedPath.pathname === "/import-wallet") {
                 e.preventDefault();
                 handleImport();
               }

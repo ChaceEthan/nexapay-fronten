@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 export default function useWallet() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const address = useSelector((s) => s.wallet.address);
+  const address = useSelector((s) => s?.wallet?.address || "");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +62,6 @@ export default function useWallet() {
 
     } catch (err) {
       setError(err.message || "Failed to connect Freighter wallet");
-      console.error("Freighter connection error:", err);
       return null;
     } finally {
       setLoading(false);

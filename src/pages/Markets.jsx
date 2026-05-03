@@ -73,7 +73,7 @@ export default function Markets() {
                   <td className="px-8 py-6 whitespace-nowrap">
                     <div className="flex items-center gap-4">
                       <img src={market.image} alt="" className="w-8 h-8 rounded-full bg-black/40" 
-                           onError={(e) => e.target.src = 'https://via.placeholder.com/32'} />
+                           onError={(e) => e.target.src = '/nexapay-32.png'} />
                       <div>
                         <div className="text-sm font-black text-white group-hover:text-cyan-400 transition-colors">{market.name}</div>
                         <div className="text-xs text-gray-500 uppercase font-mono">{market.symbol}</div>

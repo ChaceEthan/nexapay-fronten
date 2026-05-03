@@ -4,7 +4,7 @@ import { Monitor, Smartphone, Globe, ShieldAlert, LogOut } from 'lucide-react';
 import { api, backendPath } from '@/services/api';
 
 export default function Sessions() {
-  const { token } = useSelector((state) => state.auth);
+  const token = useSelector((state) => state?.auth?.token || "");
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,8 +15,8 @@ export default function Sessions() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSessions(res.data.sessions || []);
-      } catch (e) {
-        console.error("Failed to fetch sessions");
+      } catch {
+        setSessions([]);
       } finally {
         setLoading(false);
       }

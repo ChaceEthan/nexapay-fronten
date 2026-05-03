@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { safeNumber, safePrice, updateMarketCacheFromSocket } from "../services/api";
 
-const MARKET_SOCKET_URL = "ws://localhost:3000/ws/market";
 const UPDATE_THROTTLE = 1000;
 const RECONNECT_BASE_DELAY = 1000;
 const RECONNECT_MAX_DELAY = 15000;
+
+const getMarketSocketUrl = () => {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  if (typeof window === "undefined") return "";
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/market`;
+};
 
 const readSocketPayload = (eventData) => {
   const parsed = typeof eventData === "string" ? JSON.parse(eventData) : eventData;
@@ -59,7 +66,10 @@ export default function useMarketSocket(onPriceUpdate) {
       existing.close();
     }
 
-    const socket = new WebSocket(MARKET_SOCKET_URL);
+    const socketUrl = getMarketSocketUrl();
+    if (!socketUrl) return;
+
+    const socket = new WebSocket(socketUrl);
     window.__nexaSocket = socket;
 
     socket.onopen = () => {

@@ -6,7 +6,7 @@ import use2FA from '../hooks/use2FA.js';
 
 export default function Verify2FA() {
   const [code, setCode] = useState('');
-  const { twoFAMethod } = useSelector((state) => state.auth);
+  const twoFAMethod = useSelector((state) => state?.auth?.twoFAMethod || "app");
   const { verify2FA, sendOTP, loading, error } = use2FA();
   const navigate = useNavigate();
 

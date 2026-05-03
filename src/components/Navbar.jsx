@@ -19,9 +19,11 @@ export default function Navbar({ setOpen }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { wallets, activeWalletId } = useSelector((state) => state?.wallet || {});
-  const activeWallet = wallets?.find(w => w.id === activeWalletId);
-  const { network } = useSelector((state) => state?.auth || { network: "testnet" });
+  const walletState = useSelector((state) => state?.wallet || {});
+  const wallets = Array.isArray(walletState.wallets) ? walletState.wallets : [];
+  const activeWalletId = walletState.activeWalletId || null;
+  const activeWallet = wallets.find((w) => w?.id === activeWalletId) || null;
+  const network = useSelector((state) => state?.auth?.network || "testnet");
 
   const [isOpen, setIsOpen] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -86,7 +88,7 @@ export default function Navbar({ setOpen }) {
                   <span className="text-[10px] font-bold text-cyan-500">{wallets.length} SAVED</span>
                 </div>
                 <div className="max-h-80 overflow-y-auto p-2 space-y-1">
-                  {wallets?.map((w) => (
+                  {wallets.length > 0 ? wallets.map((w) => (
                     <button
                       key={w.id}
                       onClick={() => {
@@ -110,7 +112,11 @@ export default function Navbar({ setOpen }) {
                       </div>
                       {w.id === activeWalletId && <Check size={16} className="text-cyan-400" />}
                     </button>
-                  ))}
+                  )) : (
+                    <div className="p-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-600">
+                      No vaults saved
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={() => {

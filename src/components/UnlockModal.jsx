@@ -15,7 +15,7 @@ import { decrypt } from "@/utils/crypto";
  */
 export default function UnlockModal({ onUnlock, onClose, title = "Unlock Wallet" }) {
   const dispatch = useDispatch();
-  const { activeWalletId } = useSelector((state) => state.wallet);
+  const activeWalletId = useSelector((state) => state?.wallet?.activeWalletId || null);
   
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -33,6 +33,11 @@ export default function UnlockModal({ onUnlock, onClose, title = "Unlock Wallet"
     setLoading(true);
 
     try {
+      if (!activeWalletId) {
+        setError("No active wallet selected.");
+        return;
+      }
+
       const stored = localStorage.getItem(`nexa_pin_hash_${activeWalletId}`);
       const hashed = CryptoJS.SHA256(pin).toString();
 
@@ -63,12 +68,10 @@ export default function UnlockModal({ onUnlock, onClose, title = "Unlock Wallet"
           if (onUnlock) {
             onUnlock(decryptedSecretKey);
           }
-        } catch (decryptErr) {
-          console.error("Decryption failed:", decryptErr);
+        } catch {
           setError("Failed to decrypt wallet. Incorrect PIN?");
         }
       } else {
-        console.warn("⚠️ No encrypted secret key found for wallet:", activeWalletId);
         setError("Wallet data corrupted. Please recover from backup phrase.");
       }
     } catch (err) {
