@@ -117,6 +117,8 @@ let marketCache = {
   fullList: DEFAULT_MARKETS,
   timestamp: 0,
   isLive: false,
+  source: "fallback",
+  lastError: "",
 };
 
 const pick = (source, keys, fallback = undefined) => {
@@ -309,6 +311,7 @@ const getCachedMarket = () => ({
   history: normalizeHistory(marketCache.history, buildDefaultHistory(), marketCache.prices.XLM),
   fullList: safeArray(marketCache.fullList).length > 0 ? marketCache.fullList : listFromPrices(marketCache.prices),
   isLive: false,
+  source: marketCache.timestamp ? "cache" : "fallback",
 });
 
 const formatMarketData = (data) => {
@@ -329,6 +332,10 @@ const formatMarketData = (data) => {
     },
     history: normalizeHistory(data?.history, buildDefaultHistory(prices.XLM), prices.XLM),
     isLive: !!data?.isLive,
+    degraded: !data?.isLive,
+    source: data?.source || (data?.isLive ? "live" : "cache"),
+    lastUpdated: data?.timestamp || Date.now(),
+    error: data?.lastError || "",
   };
 };
 
@@ -338,11 +345,18 @@ const fetchMarket = async (force = false) => {
 
   try {
     const response = await marketApi.get(backendPath("/api/market"));
-    marketCache = normalizeMarketPayload(response.data, true);
+    marketCache = {
+      ...normalizeMarketPayload(response.data, true),
+      source: "live",
+      lastError: "",
+    };
     persistMarketCache();
     return marketCache;
-  } catch {
-    marketCache = getCachedMarket();
+  } catch (error) {
+    marketCache = {
+      ...getCachedMarket(),
+      lastError: error?.message || "Market feed unavailable",
+    };
     return marketCache;
   }
 };
@@ -406,6 +420,8 @@ export const updateMarketCacheFromSocket = (payload) => {
     ...marketCache,
     ...live,
     fullList: safeArray(marketCache.fullList).length > 0 ? marketCache.fullList : live.fullList,
+    source: "websocket",
+    lastError: "",
   };
   persistMarketCache();
 
@@ -418,17 +434,64 @@ export const updateMarketCacheFromSocket = (payload) => {
   };
 };
 
+const parseLocalQrPayload = (raw) => {
+  const value = String(raw || "").trim();
+  if (!value) throw new Error("Empty QR code.");
+
+  const directAddress = value.match(/G[A-Z2-7]{55}/)?.[0];
+  if (directAddress && value === directAddress) {
+    return { address: directAddress, amount: "", memo: "", assetCode: "XLM", assetIssuer: null, raw: value };
+  }
+
+  const normalized = value
+    .replace(/^web\+stellar:/i, "stellar:")
+    .replace(/^stellar:\/\/pay/i, "stellar:pay");
+
+  if (normalized.startsWith("stellar:")) {
+    const [, query = ""] = normalized.split("?");
+    const params = new URLSearchParams(query);
+    const address =
+      params.get("destination") ||
+      params.get("recipient") ||
+      params.get("address") ||
+      directAddress;
+
+    if (address) {
+      return {
+        address: address.trim(),
+        amount: params.get("amount") || "",
+        memo: params.get("memo") || params.get("memo_text") || "",
+        assetCode: String(params.get("asset_code") || params.get("assetCode") || "XLM").toUpperCase(),
+        assetIssuer: params.get("asset_issuer") || params.get("assetIssuer") || null,
+        raw: value,
+      };
+    }
+  }
+
+  if (directAddress) {
+    return { address: directAddress, amount: "", memo: "", assetCode: "XLM", assetIssuer: null, raw: value };
+  }
+
+  throw new Error("Invalid QR code.");
+};
+
 export const parseQrPayload = async (rawValue) => {
   const raw = String(rawValue || "").trim();
   if (!raw) throw new Error("Empty QR code.");
 
-  const response = await api.post(backendPath("/api/qr/parse"), {
-    raw,
-    qr: raw,
-    payload: raw,
-  });
+  let data = null;
 
-  const data = response.data?.data || response.data || {};
+  try {
+    const response = await api.post(backendPath("/api/qr/parse"), {
+      raw,
+      qr: raw,
+      payload: raw,
+    });
+    data = response.data?.data || response.data || {};
+  } catch {
+    return parseLocalQrPayload(raw);
+  }
+
   const address = pick(data, ["address", "recipient", "destination", "publicKey", "account"]);
 
   if (!address) throw new Error(data?.message || "Invalid QR code.");

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, QrCode, AlertCircle, CheckCircle, Zap, ShieldCheck } from "lucide-react";
+import { X, ScanLine, AlertCircle, CheckCircle, Focus } from "lucide-react";
 import { StrKey } from "@stellar/stellar-sdk";
 import { Html5Qrcode } from "html5-qrcode";
 import { createPortal } from "react-dom";
@@ -67,7 +67,7 @@ export default function QRScanner({ onClose, onScan }) {
         },
         { 
           fps: 30,
-          qrbox: { width: Math.min(320, window.innerWidth - 48), height: Math.min(320, window.innerWidth - 48) },
+          qrbox: { width: Math.min(360, window.innerWidth - 40), height: Math.min(360, window.innerWidth - 40) },
           aspectRatio: 1.0,
           disableFlip: true,
           rememberLastUsedCamera: false,
@@ -94,7 +94,8 @@ export default function QRScanner({ onClose, onScan }) {
       if (capabilities.focusMode?.includes("continuous")) advanced.push({ focusMode: "continuous" });
       if (capabilities.exposureMode?.includes("continuous")) advanced.push({ exposureMode: "continuous" });
       if (capabilities.whiteBalanceMode?.includes("continuous")) advanced.push({ whiteBalanceMode: "continuous" });
-      if (capabilities.zoom?.max && capabilities.zoom.max > 1) advanced.push({ zoom: Math.min(1.4, capabilities.zoom.max) });
+      if (capabilities.zoom?.max && capabilities.zoom.max > 1) advanced.push({ zoom: Math.min(1.25, capabilities.zoom.max) });
+      if (capabilities.torch) advanced.push({ torch: true });
 
       if (advanced.length > 0) await track.applyConstraints({ advanced });
     } catch {
@@ -148,7 +149,7 @@ export default function QRScanner({ onClose, onScan }) {
       <div className="absolute inset-0 z-0">
         <div 
           id="qr-scanner-view" 
-          className="w-full h-full [&>video]:object-cover [&>video]:brightness-[1.85] [&>video]:contrast-[1.55] [&>video]:saturate-[1.35] [&>video]:will-change-transform" 
+          className="w-full h-full [&>video]:object-cover [&>video]:brightness-[2.05] [&>video]:contrast-[1.7] [&>video]:saturate-[1.28] [&>video]:will-change-transform"
         />
       </div>
 
@@ -159,7 +160,7 @@ export default function QRScanner({ onClose, onScan }) {
         <div className="p-8 flex justify-between items-center bg-gradient-to-b from-black/40 to-transparent pointer-events-auto">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40 shadow-2xl">
-              <QrCode size={24} className="text-cyan-400" />
+              <ScanLine size={24} className="text-cyan-400" />
             </div>
             <div>
               <p className="text-white font-black uppercase tracking-[0.2em] text-xs">Nexa Scanner</p>
@@ -216,7 +217,7 @@ export default function QRScanner({ onClose, onScan }) {
           ) : (
             <div className="space-y-6">
               <div className="inline-flex items-center gap-4 bg-cyan-500/10 border border-cyan-500/20 px-8 py-3 rounded-full shadow-2xl">
-                <Zap size={16} className="text-cyan-400 animate-pulse" />
+                <Focus size={16} className="text-cyan-400 animate-pulse" />
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Institutional Scan Engine Active</span>
               </div>
               <div className="space-y-2">

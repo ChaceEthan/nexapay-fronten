@@ -67,8 +67,10 @@ export default function NetworkStatus() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-emerald-400">ACTIVE</span>
-              <Wifi size={14} className="text-emerald-400" />
+              <span className={`text-[10px] font-black ${isOnline ? "text-emerald-400" : "text-rose-400"}`}>
+                {isOnline ? "ACTIVE" : "OFFLINE"}
+              </span>
+              {isOnline ? <Wifi size={14} className="text-emerald-400" /> : <WifiOff size={14} className="text-rose-400" />}
             </div>
           </div>
 
@@ -82,8 +84,10 @@ export default function NetworkStatus() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-emerald-400">ACTIVE</span>
-              <ShieldCheck size={14} className="text-emerald-400" />
+              <span className={`text-[10px] font-black ${isOnline ? "text-emerald-400" : "text-amber-400"}`}>
+                {isOnline ? "ACTIVE" : "CACHED"}
+              </span>
+              <ShieldCheck size={14} className={isOnline ? "text-emerald-400" : "text-amber-400"} />
             </div>
           </div>
 

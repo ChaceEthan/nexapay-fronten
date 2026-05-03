@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Activity, Globe, Server, CheckCircle2, XCircle, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Globe, Server, CheckCircle2, XCircle, Zap } from "lucide-react";
 import { api, backendPath } from "@/services/api"; // Assuming api.js exports the axios instance
 
 /**
  * SystemHealthCard - Displays real-time status of Stellar Horizon and Nexa-Market-API.
  * Designed to be embedded directly into the dashboard layout.
  */
-export default function SystemHealthCard({ wsActive }) {
+export default function SystemHealthCard({ wsActive, marketStatus = "cached" }) {
   const [horizonStatus, setHorizonStatus] = useState("checking"); // 'checking', 'online', 'offline'
   const [marketApiStatus, setMarketApiStatus] = useState("checking"); // 'checking', 'online', 'offline'
   const [lastMarketSync, setLastMarketSync] = useState(null);
@@ -58,15 +58,26 @@ export default function SystemHealthCard({ wsActive }) {
 
   const getStatusIcon = (status) => {
     if (status === "online") return <CheckCircle2 size={18} className="text-emerald-400" />;
+    if (status === "degraded") return <AlertTriangle size={18} className="text-amber-400" />;
     if (status === "offline") return <XCircle size={18} className="text-red-400" />;
     return <Activity size={18} className="text-gray-500 animate-spin" />;
   };
 
   const getStatusText = (status) => {
     if (status === "online") return "Online";
+    if (status === "degraded") return "Cached";
     if (status === "offline") return "Offline";
     return "Checking...";
   };
+
+  const marketDisplayStatus =
+    marketApiStatus === "online"
+      ? "online"
+      : marketStatus === "loading"
+        ? "checking"
+        : marketStatus === "live"
+          ? "online"
+          : "degraded";
 
   return (
     <div className="bg-[#1e2329] border border-white/5 p-6 rounded-xl shadow-xl">
@@ -100,8 +111,8 @@ export default function SystemHealthCard({ wsActive }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black ${marketApiStatus === 'online' ? 'text-emerald-400' : 'text-red-400'}`}>{getStatusText(marketApiStatus)}</span>
-            {getStatusIcon(marketApiStatus)}
+            <span className={`text-[10px] font-black ${marketDisplayStatus === 'online' ? 'text-emerald-400' : marketDisplayStatus === 'degraded' ? 'text-amber-400' : 'text-red-400'}`}>{getStatusText(marketDisplayStatus)}</span>
+            {getStatusIcon(marketDisplayStatus)}
           </div>
         </div>
 

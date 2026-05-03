@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { createPortal } from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Menu, Wallet, Check, QrCode } from "lucide-react"; 
+import { Menu, Wallet, Check, ScanLine } from "lucide-react";
 import { setScannedRecipient, setActiveWallet } from "../walletSlice";
 import NotificationBell from "@/components/NotificationBell";
 import QRScanner from "@/components/QRScanner";
@@ -29,7 +28,7 @@ export default function Navbar({ setOpen }) {
   const [showQRScanner, setShowQRScanner] = useState(false);
   
   return (
-    <div className="sticky top-0 z-[60] h-16 sm:h-18 bg-[#0b0e11]/95 backdrop-blur-2xl border-b border-white/5 shadow-xl shadow-black/60">
+    <div className="sticky top-0 z-[60] h-16 sm:h-[72px] bg-[#0b0e11]/95 backdrop-blur-2xl border-b border-white/5 shadow-xl shadow-black/60">
       <div className="h-full flex items-center justify-between gap-3 px-3 sm:px-5 lg:px-6">
       
       {/* MOBILE TRIGGER */}
@@ -56,7 +55,7 @@ export default function Navbar({ setOpen }) {
           className="w-10 h-10 sm:w-11 sm:h-11 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-cyan-400 transition-all shadow-xl active:scale-90"
           title="Secure QR Scanner"
         >
-          <QrCode size={20} strokeWidth={2.5} />
+          <ScanLine size={20} strokeWidth={2.5} />
         </button>
 
         {/* WALLET SWITCHER (RELOCATED NEAR QR) */}
@@ -143,29 +142,15 @@ export default function Navbar({ setOpen }) {
       </div>
 
       {/* ✅ QR SCANNER PORTAL */}
-      {showQRScanner &&
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 2147483647,
-              backgroundColor: "rgba(0,0,0,0.96)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <QRScanner
-              onClose={() => setShowQRScanner(false)}
-              onScan={(scannedAddress) => {
-                dispatch(setScannedRecipient(scannedAddress));
-                setShowQRScanner(false);
-              }}
-            />
-          </div>,
-          document.body
-        )}
+      {showQRScanner && (
+        <QRScanner
+          onClose={() => setShowQRScanner(false)}
+          onScan={(scannedAddress) => {
+            dispatch(setScannedRecipient(scannedAddress));
+            setShowQRScanner(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -278,10 +278,14 @@ export default function TransactionForm({ recipient: initialRecipient, onClose, 
         </div>,
         document.body
       )}
-      {showQRScanner && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/95">
-          <QRScanner onClose={() => setShowQRScanner(false)} onScan={(payload) => { applyScanPayload(payload); setShowQRScanner(false); }} />
-        </div>, document.body
+      {showQRScanner && (
+        <QRScanner
+          onClose={() => setShowQRScanner(false)}
+          onScan={(payload) => {
+            applyScanPayload(payload);
+            setShowQRScanner(false);
+          }}
+        />
       )}
     </div>
   );

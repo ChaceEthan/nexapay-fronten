@@ -286,14 +286,14 @@ function App() {
           </ErrorBoundary>
 
           {/* MAIN TERMINAL HUB */}
-          <div className="min-h-screen flex flex-col md:pl-72">
+          <div className="min-h-screen min-w-0 flex flex-col md:ml-72">
             {/* STICKY HEADER */}
             <ErrorBoundary mini>
               <Navbar setOpen={setOpen} />
             </ErrorBoundary>
 
             {/* SCROLLABLE VIEWPORT */}
-            <main className="flex-1 overflow-y-auto py-4 sm:py-5 lg:py-6">
+            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden py-4 sm:py-5 lg:py-6">
               <ErrorBoundary>
                 <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                   <Routes>

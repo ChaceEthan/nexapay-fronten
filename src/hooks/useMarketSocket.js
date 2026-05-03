@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { safeNumber, safePrice, updateMarketCacheFromSocket } from "../services/api";
 
 const UPDATE_THROTTLE = 1000;
-const RECONNECT_BASE_DELAY = 1000;
-const RECONNECT_MAX_DELAY = 15000;
+const RECONNECT_DELAY = 5000;
 
 const getMarketSocketUrl = () => {
   if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
@@ -35,11 +34,11 @@ const readSocketPayload = (eventData) => {
 
 export default function useMarketSocket(onPriceUpdate) {
   const [isConnected, setIsConnected] = useState(false);
+  const [status, setStatus] = useState("connecting");
   const callbackRef = useRef(onPriceUpdate);
   const lastUpdateRef = useRef(0);
   const prevPriceRef = useRef(0.165);
   const reconnectTimerRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -67,14 +66,19 @@ export default function useMarketSocket(onPriceUpdate) {
     }
 
     const socketUrl = getMarketSocketUrl();
-    if (!socketUrl) return;
+    if (!socketUrl) {
+      setIsConnected(false);
+      setStatus("offline");
+      return;
+    }
 
+    setStatus("connecting");
     const socket = new WebSocket(socketUrl);
     window.__nexaSocket = socket;
 
     socket.onopen = () => {
-      reconnectAttemptsRef.current = 0;
       setIsConnected(true);
+      setStatus("live");
     };
 
     socket.onmessage = (event) => {
@@ -111,16 +115,14 @@ export default function useMarketSocket(onPriceUpdate) {
     const scheduleReconnect = () => {
       if (!mountedRef.current || window.__nexaSocket_cleanup) return;
 
-      const attempt = reconnectAttemptsRef.current + 1;
-      reconnectAttemptsRef.current = attempt;
-      const delay = Math.min(RECONNECT_BASE_DELAY * 2 ** (attempt - 1), RECONNECT_MAX_DELAY);
-
+      setStatus("reconnecting");
       clearReconnectTimer();
-      reconnectTimerRef.current = setTimeout(connect, delay);
+      reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY);
     };
 
     socket.onerror = () => {
       setIsConnected(false);
+      setStatus("reconnecting");
       socket.close();
     };
 
@@ -160,5 +162,5 @@ export default function useMarketSocket(onPriceUpdate) {
     };
   }, [clearReconnectTimer, connect]);
 
-  return { isConnected };
+  return { isConnected, status, retryDelay: RECONNECT_DELAY };
 }

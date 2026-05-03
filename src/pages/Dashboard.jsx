@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -8,8 +8,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Bell,
-  Activity,
-  History,
+  AlertTriangle,
   ShieldCheck
 } from "lucide-react";
 
@@ -18,8 +17,7 @@ import {
   Area,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer
+  Tooltip
 } from "recharts";
 
 import DashboardCard from "@/components/DashboardCard";
@@ -40,7 +38,7 @@ import {
 
 import { addNotification, selectUnreadCountForActiveWallet } from "@/notificationSlice";
 import { showToast } from "@/toastSlice";
-import { api, backendPath, getMarketData, safePrice, safeNumber } from "@/services/api";
+import { api, backendPath, getMarketData, safePrice, safeNumber, safeArray } from "@/services/api";
 
 const FALLBACK_XLM_PRICE = 0.165;
 const FALLBACK_MARKET_DATA = {
@@ -74,6 +72,107 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
+const ChartLoadingState = () => (
+  <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+    <div className="w-full max-w-[88%] space-y-3 animate-pulse">
+      <div className="h-28 rounded-2xl bg-white/[0.04]" />
+      <div className="grid grid-cols-4 gap-2">
+        {[1, 2, 3, 4].map((item) => (
+          <div key={item} className="h-2 rounded bg-white/[0.06]" />
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const SafeMarketChart = ({ data, status }) => {
+  const containerRef = useRef(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return undefined;
+
+    const measure = () => {
+      const rect = node.getBoundingClientRect();
+      const next = {
+        width: Math.max(0, Math.floor(rect.width)),
+        height: Math.max(0, Math.floor(rect.height)),
+      };
+
+      setSize((prev) =>
+        Math.abs(prev.width - next.width) < 2 && Math.abs(prev.height - next.height) < 2 ? prev : next
+      );
+    };
+
+    measure();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(node);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const chartData = safeArray(data);
+  const canRender = size.width > 8 && size.height > 8 && chartData.length > 0;
+
+  return (
+    <div ref={containerRef} className="relative w-full h-[220px] sm:h-[260px] min-w-0 overflow-hidden">
+      {!canRender ? (
+        <ChartLoadingState />
+      ) : (
+        <AreaChart width={size.width} height={size.height} data={chartData} margin={{ top: 8, right: 4, left: 4, bottom: 8 }}>
+          <defs>
+            <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="time" hide />
+          <YAxis hide domain={["auto", "auto"]} />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="price"
+            stroke="#22d3ee"
+            strokeWidth={3}
+            fillOpacity={1}
+            fill="url(#colorPrice)"
+            isAnimationActive={status === "live"}
+          />
+        </AreaChart>
+      )}
+    </div>
+  );
+};
+
+const DegradedModeBanner = ({ marketStatus, wsStatus, lastMarketSync }) => {
+  if (marketStatus === "live" && wsStatus === "live") return null;
+
+  const copy =
+    marketStatus === "loading"
+      ? "Synchronizing market data with cached prices ready."
+      : "Live services are degraded. Cached prices and fallback health checks are active.";
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-100">
+      <div className="flex items-start gap-3">
+        <AlertTriangle size={18} className="mt-0.5 text-amber-300 shrink-0" />
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">Degraded Mode</p>
+          <p className="text-xs font-semibold text-amber-100/80">{copy}</p>
+        </div>
+      </div>
+      <div className="text-[10px] font-black uppercase tracking-widest text-amber-200/70">
+        {lastMarketSync ? `Last sync ${lastMarketSync.toLocaleTimeString()}` : "Fallback ready"}
+      </div>
+    </div>
+  );
+};
+
 /**
  * Dashboard - Refined Fintech Interface
  * - Professional Header with brand persistence
@@ -99,15 +198,17 @@ export default function Dashboard() {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [marketData, setMarketData] = useState(FALLBACK_MARKET_DATA);
   const [priceHistory, setPriceHistory] = useState([]);
-  const [marketError, setMarketError] = useState(false);
+  const [marketStatus, setMarketStatus] = useState("loading");
+  const [lastMarketSync, setLastMarketSync] = useState(null);
   const [marketTrend, setMarketTrend] = useState("SIDEWAYS");
   const [isHorizonOnline, setIsHorizonOnline] = useState(true);
   const [lastAlertPrice, setLastAlertPrice] = useState(0);
 
   const nativeBalance = balances.find(b => b.asset_type === 'native')?.balance || "0";
+  const usdcBalance = balances.find(b => b.asset_code === 'USDC')?.balance || "0";
 
   // WebSocket Live Updates
-  const { isConnected: wsActive } = useMarketSocket((live) => {
+  const { isConnected: wsActive, status: wsStatus } = useMarketSocket((live) => {
     const livePrice = safePrice(live?.price, marketData?.xlm?.price || FALLBACK_XLM_PRICE);
     if (!livePrice) return;
 
@@ -129,6 +230,8 @@ export default function Dashboard() {
     }
 
     if (live.trend) setMarketTrend(live.trend);
+    setMarketStatus("live");
+    setLastMarketSync(new Date());
     setMarketData((prev) => {
       return {
         ...(prev || FALLBACK_MARKET_DATA),
@@ -158,9 +261,12 @@ export default function Dashboard() {
           history: data.history || prev?.history
         }));
         if (data.history) setPriceHistory(data.history);
+        setMarketStatus(data.isLive ? "live" : "cached");
+        setLastMarketSync(new Date(data.lastUpdated || Date.now()));
       }
     };
 
+    poll();
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, [wsActive]);
@@ -179,13 +285,13 @@ export default function Dashboard() {
           },
         });
         setPriceHistory(data.history || []);
-        setMarketError(false);
-      } else if (!wsActive && !marketData) {
-        setMarketError(true);
-        dispatch(showToast({ message: "Market data sync failed.", type: "error" }));
+        setMarketStatus(data.isLive ? "live" : "cached");
+        setLastMarketSync(new Date(data.lastUpdated || Date.now()));
+      } else {
+        setMarketStatus("cached");
       }
     };
-    load();
+    load().catch(() => setMarketStatus("cached"));
   }, [wsActive]);
 
   useEffect(() => {
@@ -231,8 +337,12 @@ export default function Dashboard() {
   }, [scannedRecipient, retryData]);
 
   const xlmPrice = safePrice(marketData?.xlm?.price, FALLBACK_XLM_PRICE);
+  const usdcPrice = safePrice(marketData?.usdc?.price, 1);
   const xlmChange = safeNumber(marketData?.xlm?.change, 0);
-  const portfolioValue = (parseFloat(nativeBalance) * xlmPrice).toFixed(2);
+  const portfolioValue = (
+    safeNumber(nativeBalance, 0) * xlmPrice +
+    safeNumber(usdcBalance, 0) * usdcPrice
+  ).toFixed(2);
   const chartData = useMemo(() => {
     if (Array.isArray(priceHistory) && priceHistory.length > 0) {
       return priceHistory.map((point, index) => ({
@@ -258,9 +368,9 @@ export default function Dashboard() {
     if (!activeWallet) return null;
 
     return (
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6 items-start min-w-0">
         {/* PRIMARY TERMINAL (8/12) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="xl:col-span-8 space-y-6 min-w-0">
           <DashboardCard
             balances={balances}
             address={activeWallet.address}
@@ -271,10 +381,10 @@ export default function Dashboard() {
           />
           
           {/* MARKET INSIGHTS */}
-          <div className="bg-[#1e2329] p-4 sm:p-5 rounded-2xl border border-white/5 shadow-xl relative overflow-hidden group">
+          <div className="bg-[#1e2329] p-4 sm:p-5 rounded-2xl border border-white/5 shadow-xl relative overflow-hidden group min-w-0">
             <div className="absolute top-4 right-4 flex items-center gap-2 px-2.5 py-1 bg-black/40 rounded-full border border-white/5">
                <div className={`w-1.5 h-1.5 rounded-full ${wsActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-               <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{wsActive ? 'Live' : 'Offline'}</span>
+               <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{wsActive ? 'Live' : 'Cached'}</span>
             </div>
 
             <div className="mb-6">
@@ -290,43 +400,20 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="w-full min-h-[200px] h-[220px] sm:h-[260px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="time" hide />
-                    <YAxis hide domain={['auto', 'auto']} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="price" 
-                      stroke="#22d3ee" 
-                      strokeWidth={3} 
-                      fillOpacity={1} 
-                      fill="url(#colorPrice)"
-                      isAnimationActive={true}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-            </div>
+            <SafeMarketChart data={chartData} status={marketStatus} />
           </div>
 
           <TransactionHistory publicKey={activeWallet.address} />
         </div>
 
         {/* SIDEBAR UTILS (4/12) */}
-        <aside className="lg:col-span-4 space-y-6">
-          <SystemHealthCard wsActive={wsActive} />
+        <aside className="xl:col-span-4 space-y-6 min-w-0">
+          <SystemHealthCard wsActive={wsActive} marketStatus={marketStatus} />
           <ReferralSection />
         </aside>
       </div>
     );
-  }, [balances, activeWallet, loading, portfolioValue, marketData, chartData, wsActive, marketTrend, xlmPrice, xlmChange]);
+  }, [balances, activeWallet, loading, portfolioValue, chartData, wsActive, marketStatus, marketTrend, xlmPrice, xlmChange]);
 
   if (!activeWallet) {
     return (
@@ -334,7 +421,7 @@ export default function Dashboard() {
          <div className="space-y-4">
             <Logo size={60} />
             <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Protocol: Select Vault</p>
-            <button onClick={() => navigate("/select-wallet")} className="bg-cyan-500 text-black font-black px-8 py-4 rounded-2xl shadow-xl shadow-cyan-500/20 active:scale-95 transition-all">
+            <button onClick={() => navigate("/vaults")} className="bg-cyan-500 text-black font-black px-8 py-4 rounded-2xl shadow-xl shadow-cyan-500/20 active:scale-95 transition-all">
               Initialize Session
             </button>
          </div>
@@ -348,8 +435,8 @@ export default function Dashboard() {
         <div className="space-y-5 sm:space-y-6">
           
           {/* HEADER HUB */}
-          <header className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+            <div className="flex items-center gap-4 min-w-0">
               <Logo size={40} />
               <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
               <div className="flex flex-col">
@@ -387,6 +474,12 @@ export default function Dashboard() {
               </div>
             </div>
           </header>
+
+          <DegradedModeBanner
+            marketStatus={marketStatus}
+            wsStatus={wsStatus}
+            lastMarketSync={lastMarketSync}
+          />
 
           <NewsBanner wsActive={wsActive} />
 
